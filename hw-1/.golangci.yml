@@ -1,0 +1,17 @@
+version: "2"
+
+linters:
+  enable:
+    - nlreturn
+  settings:
+    nlreturn:
+      block-size: 1
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - ddia/hw1
