@@ -10,6 +10,7 @@ import (
 
 	"ddia/hw1/internal/models"
 	"ddia/hw1/internal/store"
+	"ddia/hw1/pkg/golden"
 )
 
 type api struct {
@@ -21,12 +22,13 @@ type itemRequest struct {
 	Value string `json:"value"`
 }
 
-func (a *api) routes(mux *http.ServeMux) {
+func (a *api) routes(mux *http.ServeMux, ins *golden.Instrumenter) {
 	mux.HandleFunc("GET /healthz", a.healthz)
-	mux.HandleFunc("GET /items", a.listItems)
-	mux.HandleFunc("POST /items", a.createItem)
-	mux.HandleFunc("GET /items/{id}", a.getItem)
-	mux.HandleFunc("PUT /items/{id}", a.updateItem)
+
+	ins.Handle(mux, "GET /items", "items_list", a.listItems)
+	ins.Handle(mux, "POST /items", "items_create", a.createItem)
+	ins.Handle(mux, "GET /items/{id}", "items_get", a.getItem)
+	ins.Handle(mux, "PUT /items/{id}", "items_update", a.updateItem)
 }
 
 func (a *api) healthz(w http.ResponseWriter, _ *http.Request) {

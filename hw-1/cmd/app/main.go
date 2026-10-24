@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -10,14 +11,42 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"ddia/hw1/internal/store"
+	"ddia/hw1/pkg/golden"
 )
 
 func main() {
+	if err := run(); err != nil {
+		slog.Error("app failed", "err", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	addr := envOr("LISTEN_ADDR", ":8080")
 
+	cfg, err := golden.ConfigFromEnv()
+	if err != nil {
+		return err
+	}
+
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(
+		collectors.NewGoCollector(),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+	)
+	ins, err := golden.New(cfg, reg)
+	if err != nil {
+		return fmt.Errorf("init metrics: %w", err)
+	}
+
 	mux := http.NewServeMux()
-	(&api{store: store.New()}).routes(mux)
+	(&api{store: store.New()}).routes(mux, ins)
+	mux.Handle("GET /metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
 
 	srv := &http.Server{
 		Addr:              addr,
@@ -28,21 +57,29 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	serveErr := make(chan error, 1)
 	go func() {
-		slog.Info("listening", "addr", addr)
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			slog.Error("server failed", "err", err)
-			os.Exit(1)
-		}
+		slog.Info("listening", "addr", addr, "pod", cfg.Pod, "datacenter", cfg.Datacenter, "deployment", cfg.Deployment)
+		serveErr <- srv.ListenAndServe()
 	}()
 
-	<-ctx.Done()
+	select {
+	case err := <-serveErr:
+		return err
+	case <-ctx.Done():
+	}
+
 	slog.Info("shutting down")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		slog.Error("shutdown", "err", err)
+		return fmt.Errorf("shutdown: %w", err)
 	}
+	if err := <-serveErr; !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	return nil
 }
 
 func envOr(key, def string) string {

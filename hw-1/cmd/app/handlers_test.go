@@ -6,14 +6,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"ddia/hw1/internal/store"
+	"ddia/hw1/pkg/golden"
 )
 
 func TestHandlers(t *testing.T) {
+	ins, err := golden.New(golden.Config{Pod: "pod-1", Datacenter: "dc1", Deployment: "items"}, prometheus.NewRegistry())
+	require.NoError(t, err)
 	mux := http.NewServeMux()
-	(&api{store: store.New()}).routes(mux)
+	(&api{store: store.New()}).routes(mux, ins)
 
 	cases := []struct {
 		name, method, path, body string

@@ -1,4 +1,4 @@
-FROM golang:1.25.14-alpine3.24 AS build
+FROM golang:1.26.10-alpine3.24 AS build
 
 ARG CMD
 
@@ -8,7 +8,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/service ./cmd/${CMD}
 
-FROM alpine:3.24.1
+FROM alpine:3.24.3
 
 RUN adduser -D -u 10001 service
 USER service

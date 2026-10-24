@@ -6,6 +6,9 @@ services:
         CMD: app
     environment:
       LISTEN_ADDR: ":8080"
+      POD_NAME: pod-1
+      DATACENTER: dc1
+      DEPLOYMENT_NAME: items-service
     ports:
       - "8080:8080"
     healthcheck:
