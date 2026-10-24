@@ -44,3 +44,16 @@ func TestHandlers(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateItemBodyTooLarge(t *testing.T) {
+	ins, err := golden.New(golden.Config{Pod: "pod-1", Datacenter: "dc1", Deployment: "items"}, prometheus.NewRegistry())
+	require.NoError(t, err)
+	mux := http.NewServeMux()
+	(&api{store: store.New()}).routes(mux, ins)
+
+	body := `{"name":"a","value":"` + strings.Repeat("x", maxBodyBytes) + `"}`
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest("POST", "/items", strings.NewReader(body)))
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+}

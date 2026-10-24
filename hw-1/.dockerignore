@@ -7,3 +7,5 @@ docs
 *.md
 docker-compose.yaml
 Dockerfile
+deploy
+.claude

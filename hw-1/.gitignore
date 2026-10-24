@@ -3,7 +3,6 @@
 
 # secrets: only *.example files are committed
 /secrets/*
-!/secrets/.gitkeep
 !/secrets/*.example
 
 # env files

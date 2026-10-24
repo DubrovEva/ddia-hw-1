@@ -13,6 +13,8 @@ import (
 	"ddia/hw1/pkg/golden"
 )
 
+const maxBodyBytes = 1 << 20
+
 type api struct {
 	store *store.Store
 }
@@ -93,7 +95,7 @@ func (a *api) updateItem(w http.ResponseWriter, r *http.Request) {
 
 func decodeItem(w http.ResponseWriter, r *http.Request) (itemRequest, bool) {
 	var req itemRequest
-	dec := json.NewDecoder(r.Body)
+	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxBodyBytes))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON body: "+err.Error())

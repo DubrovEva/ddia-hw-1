@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"ddia/hw1/internal/env"
 	"ddia/hw1/internal/store"
 	"ddia/hw1/pkg/golden"
 )
@@ -27,7 +28,7 @@ func main() {
 }
 
 func run() error {
-	addr := envOr("LISTEN_ADDR", ":8080")
+	addr := env.String("LISTEN_ADDR", ":8080")
 
 	cfg, err := golden.ConfigFromEnv()
 	if err != nil {
@@ -80,12 +81,4 @@ func run() error {
 	}
 
 	return nil
-}
-
-func envOr(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-
-	return def
 }

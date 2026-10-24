@@ -1,19 +1,126 @@
+x-app: &app
+  build:
+    context: .
+    args:
+      CMD: app
+  image: ddia-hw1/app:local
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+    interval: 5s
+    timeout: 2s
+    retries: 10
+    start_period: 5s
+
+x-app-env: &app-env
+  LISTEN_ADDR: ":8080"
+  DEPLOYMENT_NAME: items-service
+
 services:
-  app:
-    build:
-      context: .
-      args:
-        CMD: app
+  app-dc1-1:
+    <<: *app
     environment:
-      LISTEN_ADDR: ":8080"
-      POD_NAME: pod-1
+      <<: *app-env
       DATACENTER: dc1
-      DEPLOYMENT_NAME: items-service
+      POD_NAME: pod-1
     ports:
-      - "8080:8080"
+      - "8081:8080"
+
+  app-dc1-2:
+    <<: *app
+    environment:
+      <<: *app-env
+      DATACENTER: dc1
+      POD_NAME: pod-2
+    ports:
+      - "8082:8080"
+
+  app-dc2-1:
+    <<: *app
+    environment:
+      <<: *app-env
+      DATACENTER: dc2
+      POD_NAME: pod-1
+    ports:
+      - "8083:8080"
+
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.154.1
+    command:
+      - -promscrape.config=/etc/victoriametrics/scrape.yml
+      - -storageDataPath=/storage
+      - -retentionPeriod=7d
+      - -search.latencyOffset=5s
+    volumes:
+      - ./deploy/victoriametrics/scrape.yml:/etc/victoriametrics/scrape.yml:ro
+      - vm-data:/storage
+    ports:
+      - "8428:8428"
+    dns_search: .
+    restart: unless-stopped
+    depends_on:
+      app-dc1-1:
+        condition: service_healthy
+      app-dc1-2:
+        condition: service_healthy
+      app-dc2-1:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8428/health"]
       interval: 5s
       timeout: 2s
       retries: 10
-      start_period: 5s
+
+  grafana:
+    image: grafana/grafana:13.2.3
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    secrets:
+      - grafana_admin_password
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      victoriametrics:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 10s
+
+  grafana-init:
+    build:
+      context: .
+      args:
+        CMD: grafana-init
+    image: ddia-hw1/grafana-init:local
+    environment:
+      GRAFANA_URL: http://grafana:3000
+      GRAFANA_ADMIN_USER: admin
+      GRAFANA_ADMIN_PASSWORD_FILE: /run/secrets/grafana_admin_password
+      GRAFANA_SA_NAME: dashgen
+      GRAFANA_SA_ROLE: Editor
+      GRAFANA_TOKEN_FILE: /data/grafana-token
+    secrets:
+      - grafana_admin_password
+    volumes:
+      - grafana-token:/data
+    restart: "no"
+    depends_on:
+      grafana:
+        condition: service_healthy
+
+volumes:
+  vm-data:
+  grafana-token:
+
+secrets:
+  grafana_admin_password:
+    file: ./secrets/grafana_admin_password

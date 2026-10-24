@@ -1,6 +1,7 @@
 package store
 
 import (
+	"cmp"
 	"context"
 	"slices"
 	"sync"
@@ -78,7 +79,7 @@ func (s *Store) List(ctx context.Context) ([]models.Item, error) {
 	for _, it := range s.items {
 		out = append(out, it)
 	}
-	slices.SortFunc(out, func(a, b models.Item) int { return int(a.ID - b.ID) })
+	slices.SortFunc(out, func(a, b models.Item) int { return cmp.Compare(a.ID, b.ID) })
 
 	return out, nil
 }

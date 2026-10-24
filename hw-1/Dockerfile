@@ -10,7 +10,7 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/service ./cmd/${CM
 
 FROM alpine:3.24.3
 
-RUN adduser -D -u 10001 service
+RUN adduser -D -u 10001 service && mkdir /data && chown service:service /data
 USER service
 COPY --from=build /out/service /usr/local/bin/service
 
