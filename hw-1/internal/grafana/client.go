@@ -34,6 +34,10 @@ func NewBasicAuth(baseURL, user, password string) *Client {
 	return newClient(baseURL, func(r *http.Request) { r.SetBasicAuth(user, password) })
 }
 
+func NewTokenAuth(baseURL, token string) *Client {
+	return newClient(baseURL, func(r *http.Request) { r.Header.Set("Authorization", "Bearer "+token) })
+}
+
 func newClient(baseURL string, auth func(*http.Request)) *Client {
 	return &Client{
 		baseURL: strings.TrimRight(baseURL, "/"),

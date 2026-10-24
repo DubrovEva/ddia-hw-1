@@ -6,6 +6,12 @@ linters:
   settings:
     nlreturn:
       block-size: 1
+  exclusions:
+    rules:
+      - path: internal/dashgen/
+        linters:
+          - staticcheck
+        text: "SA1019: dashboard\\."
 
 formatters:
   enable:

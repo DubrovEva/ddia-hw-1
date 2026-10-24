@@ -47,6 +47,7 @@ func run() error {
 
 	mux := http.NewServeMux()
 	(&api{store: store.New()}).routes(mux, ins)
+	mux.Handle("GET /internal/handlers", ins.HandlersHandler())
 	mux.Handle("GET /metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
 
 	srv := &http.Server{

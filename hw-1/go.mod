@@ -3,6 +3,7 @@ module ddia/hw1
 go 1.26.0
 
 require (
+	github.com/grafana/grafana-foundation-sdk/go v0.0.21
 	github.com/prometheus/client_golang v1.25.0
 	github.com/stretchr/testify v1.12.1
 )

@@ -3,6 +3,7 @@ package golden
 import (
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -33,9 +34,13 @@ var DefaultBuckets = []float64{
 }
 
 type Instrumenter struct {
-	latency  *prometheus.HistogramVec
-	requests *prometheus.CounterVec
-	errors   *prometheus.CounterVec
+	latency    *prometheus.HistogramVec
+	requests   *prometheus.CounterVec
+	errors     *prometheus.CounterVec
+	deployment string
+
+	mu       sync.RWMutex
+	handlers []HandlerInfo
 }
 
 func New(cfg Config, reg prometheus.Registerer) (*Instrumenter, error) {
@@ -50,6 +55,7 @@ func New(cfg Config, reg prometheus.Registerer) (*Instrumenter, error) {
 	}
 
 	i := &Instrumenter{
+		deployment: cfg.Deployment,
 		latency: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Name:        MetricLatency,
 			Help:        "Request latency per handler.",
@@ -78,6 +84,7 @@ func New(cfg Config, reg prometheus.Registerer) (*Instrumenter, error) {
 }
 
 func (i *Instrumenter) Handle(mux *http.ServeMux, pattern, handlerID string, h http.HandlerFunc) {
+	i.register(handlerID, pattern)
 	mux.Handle(pattern, i.Wrap(handlerID, h))
 }
 
