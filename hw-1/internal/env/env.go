@@ -3,6 +3,7 @@ package env
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -35,6 +36,47 @@ func Duration(key string, def time.Duration) (time.Duration, error) {
 	}
 
 	return d, nil
+}
+
+func Float(key string, def float64) (float64, error) {
+	v := os.Getenv(key)
+	if v == "" {
+		return def, nil
+	}
+	f, err := strconv.ParseFloat(v, 64)
+	if err != nil {
+		return 0, fmt.Errorf("env %s: %w", key, err)
+	}
+
+	return f, nil
+}
+
+func Int(key string, def int) (int, error) {
+	v := os.Getenv(key)
+	if v == "" {
+		return def, nil
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		return 0, fmt.Errorf("env %s: %w", key, err)
+	}
+
+	return n, nil
+}
+
+func List(key string, def []string) []string {
+	v := os.Getenv(key)
+	if v == "" {
+		return def
+	}
+	var out []string
+	for item := range strings.SplitSeq(v, ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			out = append(out, item)
+		}
+	}
+
+	return out
 }
 
 func SecretFile(key string) (string, error) {

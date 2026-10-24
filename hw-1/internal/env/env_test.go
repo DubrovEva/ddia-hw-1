@@ -65,3 +65,43 @@ func TestSecretFile(t *testing.T) {
 	_, err = SecretFile("ENV_TEST")
 	require.Error(t, err)
 }
+
+func TestFloat(t *testing.T) {
+	t.Setenv("ENV_TEST", "")
+	f, err := Float("ENV_TEST", 0.5)
+	require.NoError(t, err)
+	assert.InDelta(t, 0.5, f, 1e-9)
+
+	t.Setenv("ENV_TEST", "0.05")
+	f, err = Float("ENV_TEST", 0.5)
+	require.NoError(t, err)
+	assert.InDelta(t, 0.05, f, 1e-9)
+
+	t.Setenv("ENV_TEST", "x")
+	_, err = Float("ENV_TEST", 0.5)
+	assert.Error(t, err)
+}
+
+func TestInt(t *testing.T) {
+	t.Setenv("ENV_TEST", "")
+	n, err := Int("ENV_TEST", 3)
+	require.NoError(t, err)
+	assert.Equal(t, 3, n)
+
+	t.Setenv("ENV_TEST", "42")
+	n, err = Int("ENV_TEST", 3)
+	require.NoError(t, err)
+	assert.Equal(t, 42, n)
+
+	t.Setenv("ENV_TEST", "4.2")
+	_, err = Int("ENV_TEST", 3)
+	assert.Error(t, err)
+}
+
+func TestList(t *testing.T) {
+	t.Setenv("ENV_TEST", "")
+	assert.Equal(t, []string{"d"}, List("ENV_TEST", []string{"d"}))
+
+	t.Setenv("ENV_TEST", " a, b ,,c ")
+	assert.Equal(t, []string{"a", "b", "c"}, List("ENV_TEST", nil))
+}

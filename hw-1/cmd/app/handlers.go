@@ -16,7 +16,8 @@ import (
 const maxBodyBytes = 1 << 20
 
 type api struct {
-	store *store.Store
+	store  *store.Store
+	faults faults
 }
 
 type itemRequest struct {
@@ -27,10 +28,10 @@ type itemRequest struct {
 func (a *api) routes(mux *http.ServeMux, ins *golden.Instrumenter) {
 	mux.HandleFunc("GET /healthz", a.healthz)
 
-	ins.Handle(mux, "GET /items", "items_list", a.listItems)
-	ins.Handle(mux, "POST /items", "items_create", a.createItem)
-	ins.Handle(mux, "GET /items/{id}", "items_get", a.getItem)
-	ins.Handle(mux, "PUT /items/{id}", "items_update", a.updateItem)
+	ins.Handle(mux, "GET /items", "items_list", a.faults.wrap(a.listItems))
+	ins.Handle(mux, "POST /items", "items_create", a.faults.wrap(a.createItem))
+	ins.Handle(mux, "GET /items/{id}", "items_get", a.faults.wrap(a.getItem))
+	ins.Handle(mux, "PUT /items/{id}", "items_update", a.faults.wrap(a.updateItem))
 }
 
 func (a *api) healthz(w http.ResponseWriter, _ *http.Request) {

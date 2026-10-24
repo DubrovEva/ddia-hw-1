@@ -45,8 +45,13 @@ func run() error {
 		return fmt.Errorf("init metrics: %w", err)
 	}
 
+	flt, err := faultsFromEnv()
+	if err != nil {
+		return err
+	}
+
 	mux := http.NewServeMux()
-	(&api{store: store.New()}).routes(mux, ins)
+	(&api{store: store.New(), faults: flt}).routes(mux, ins)
 	mux.Handle("GET /internal/handlers", ins.HandlersHandler())
 	mux.Handle("GET /metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
 
@@ -61,7 +66,7 @@ func run() error {
 
 	serveErr := make(chan error, 1)
 	go func() {
-		slog.Info("listening", "addr", addr, "pod", cfg.Pod, "datacenter", cfg.Datacenter, "deployment", cfg.Deployment)
+		slog.Info("listening", "addr", addr, "pod", cfg.Pod, "datacenter", cfg.Datacenter, "deployment", cfg.Deployment, "fault_rate", flt.rate, "latency_jitter", flt.jitter)
 		serveErr <- srv.ListenAndServe()
 	}()
 

@@ -23,6 +23,8 @@ services:
       <<: *app-env
       DATACENTER: dc1
       POD_NAME: pod-1
+      FAULT_RATE: "0.02"
+      LATENCY_JITTER: 30ms
     ports:
       - "8081:8080"
 
@@ -32,6 +34,8 @@ services:
       <<: *app-env
       DATACENTER: dc1
       POD_NAME: pod-2
+      FAULT_RATE: "0.02"
+      LATENCY_JITTER: 30ms
     ports:
       - "8082:8080"
 
@@ -41,6 +45,8 @@ services:
       <<: *app-env
       DATACENTER: dc2
       POD_NAME: pod-1
+      FAULT_RATE: "0.05"
+      LATENCY_JITTER: 80ms
     ports:
       - "8083:8080"
 
@@ -141,6 +147,30 @@ services:
       grafana:
         condition: service_healthy
       grafana-init:
+        condition: service_completed_successfully
+
+  loadgen:
+    build:
+      context: .
+      args:
+        CMD: loadgen
+    image: ddia-hw1/loadgen:local
+    environment:
+      TARGETS: http://app-dc1-1:8080,http://app-dc1-2:8080,http://app-dc2-1:8080
+      TARGET_RPS: "60"
+      RAMP_DURATION: 2m
+      BAD_REQUEST_RATE: "0.05"
+      WORKERS: "32"
+      REPORT_INTERVAL: 10s
+    restart: unless-stopped
+    depends_on:
+      app-dc1-1:
+        condition: service_healthy
+      app-dc1-2:
+        condition: service_healthy
+      app-dc2-1:
+        condition: service_healthy
+      dashgen:
         condition: service_completed_successfully
 
 volumes:
