@@ -1,0 +1,13 @@
+# build artifacts
+/bin/
+
+# secrets: only *.example files are committed
+/secrets/*
+!/secrets/*.example
+
+# env files
+.env
+
+# editors
+.idea/
+.vscode/

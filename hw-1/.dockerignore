@@ -1,0 +1,11 @@
+.git
+.idea
+.vscode
+bin
+secrets
+docs
+*.md
+docker-compose.yaml
+Dockerfile
+deploy
+.claude
